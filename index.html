@@ -1,1 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KrishiMart</title>
+<link href="https://fonts.googleapis.com/css2?family=Yatra+One&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#1a6b3c;--green-light:#e8f5ee;--green-mid:#2d9a5a;--green-dark:#0f4025;
+  --amber:#e8a020;--amber-light:#fef3dc;
+  --earth:#8b5e3c;--earth-light:#f5ede6;
+  --sky:#1e7fb8;--sky-light:#e3f4fd;
+  --red:#c0392b;--red-light:#fdecea;
+  --bg:#f8f6f2;--surface:#ffffff;--border:#e8e4dd;
+  --text:#1a1a1a;--muted:#6b6560;--hint:#9e9890;
+  --r:14px;--rs:8px;--shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.app{display:flex;flex-direction:column;max-width:430px;margin:0 auto;min-height:100vh;background:var(--surface);position:relative;box-shadow:0 0 40px rgba(0,0,0,0.12)}
+.screen{display:none;flex-direction:column;min-height:100vh;animation:fadeIn 0.25s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Top nav */
+.topbar{display:flex;align-items:center;padding:16px 20px;gap:12px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10}
+.topbar .back{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;background:var(--bg);flex-shrink:0}
+.topbar h2{font-size:17px;font-weight:600;flex:1}
+.topbar .action{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg);font-size:16px}
+
+/* Bottom nav */
+.bottomnav{display:flex;background:var(--surface);border-top:1px solid var(--border);padding:8px 0 12px;position:sticky;bottom:0;z-index:10}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px;border:none;background:none}
+.bnav-item span:first-child{font-size:20px}
+.bnav-item .label{font-size:10px;color:var(--muted);font-weight:500}
+.bnav-item.active .label{color:var(--green);font-weight:600}
+.bnav-item.active span:first-child{filter:none}
+
+/* Common */
+.scroll-content{flex:1;overflow-y:auto;padding:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card-sm{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:var(--green-light);color:var(--green-dark)}
+.badge-amber{background:var(--amber-light);color:#7a5000}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-sky{background:var(--sky-light);color:#0d4e74}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;width:100%}
+.btn-primary{background:var(--green);color:#fff}
+.btn-primary:active{background:var(--green-dark)}
+.btn-outline{background:transparent;color:var(--green);border:1.5px solid var(--green)}
+.btn-amber{background:var(--amber);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-sm{padding:8px 16px;font-size:13px;border-radius:var(--rs);width:auto}
+.input-field{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:15px;font-family:inherit;outline:none;background:var(--bg);color:var(--text);transition:border 0.15s}
+.input-field:focus{border-color:var(--green)}
+.input-label{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px;display:block}
+.form-group{margin-bottom:16px}
+.row{display:flex;gap:12px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:linear-gradient(135deg,var(--green-light),var(--surface));border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.stat-card .val{font-size:24px;font-weight:700;color:var(--green-dark);font-family:'Yatra One',cursive}
+.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:2px}
+.stat-card.amber{background:linear-gradient(135deg,var(--amber-light),var(--surface))}
+.stat-card.amber .val{color:#7a5000}
+.stat-card.sky{background:linear-gradient(135deg,var(--sky-light),var(--surface))}
+.stat-card.sky .val{color:var(--sky)}
+.stat-card.earth{background:linear-gradient(135deg,var(--earth-light),var(--surface))}
+.stat-card.earth .val{color:var(--earth)}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--green-dark);flex-shrink:0}
+.section-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.list-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.list-item:last-child{border-bottom:none}
+.list-item .info{flex:1}
+.list-item .info .name{font-size:15px;font-weight:500}
+.list-item .info .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.chip{display:inline-flex;align-items:center;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);margin-right:8px;margin-bottom:8px;transition:all 0.15s}
+.chip.active{background:var(--green);color:#fff;border-color:var(--green)}
+.product-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.product-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer}
+.product-card .img{height:110px;display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,var(--green-light),var(--amber-light))}
+.product-card .body{padding:10px}
+.product-card .pname{font-size:13px;font-weight:600;margin-bottom:2px}
+.product-card .price{font-size:15px;font-weight:700;color:var(--green-dark)}
+.product-card .farmer{font-size:11px;color:var(--muted)}
+.status-bar{display:flex;gap:0;margin:20px 0}
+.status-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+.status-step::before{content:'';position:absolute;top:14px;left:50%;width:100%;height:2px;background:var(--border);z-index:0}
+.status-step:last-child::before{display:none}
+.status-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;z-index:1;position:relative}
+.status-step.done .status-dot{background:var(--green);border-color:var(--green);color:#fff}
+.status-step.done::before{background:var(--green)}
+.status-step .slabel{font-size:10px;color:var(--muted);text-align:center;font-weight:500;margin-top:4px}
+.map-view{background:linear-gradient(135deg,#c8e6c9,#a5d6a7);border-radius:var(--r);height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-bottom:16px}
+.map-pin{font-size:32px;animation:bounce 1.5s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.search-bar{display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--border);border-radius:40px;padding:10px 16px;margin-bottom:16px}
+.search-bar input{flex:1;border:none;outline:none;background:transparent;font-size:14px;color:var(--text);font-family:inherit}
+.toggle-switch{width:44px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0}
+.toggle-switch.on{background:var(--green)}
+.toggle-switch::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+.toggle-switch.on::after{left:22px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:var(--green);transition:width 0.5s}
+
+/* Splash */
+#splash{background:linear-gradient(160deg,var(--green-dark) 0%,var(--green) 50%,#3ab87a 100%);justify-content:center;align-items:center;gap:16px}
+.splash-logo{width:90px;height:90px;background:rgba(255,255,255,0.15);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:48px;border:2px solid rgba(255,255,255,0.25)}
+.splash-name{font-family:'Yatra One',cursive;font-size:38px;color:#fff;letter-spacing:1px}
+.splash-tagline{font-size:14px;color:rgba(255,255,255,0.75);text-align:center}
+.loader-dots{display:flex;gap:8px;margin-top:20px}
+.loader-dots span{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.5);animation:dot 1.2s infinite}
+.loader-dots span:nth-child(2){animation-delay:.2s}
+.loader-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,80%,100%{transform:scale(1);opacity:.5}40%{transform:scale(1.4);opacity:1}}
+
+/* Role selection */
+.role-card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px 16px;border:2px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all 0.2s;background:var(--surface)}
+.role-card:hover,.role-card.selected{border-color:var(--green);background:var(--green-light)}
+.role-card .icon{font-size:40px}
+.role-card .rtitle{font-size:15px;font-weight:600}
+.role-card .rdesc{font-size:12px;color:var(--muted);text-align:center}
+
+/* OTP */
+.otp-boxes{display:flex;gap:10px;justify-content:center;margin:24px 0}
+.otp-box{width:52px;height:56px;border:2px solid var(--border);border-radius:var(--rs);text-align:center;font-size:22px;font-weight:700;font-family:inherit;outline:none;background:var(--bg);color:var(--text);transition:border 0.15s}
+.otp-box:focus{border-color:var(--green)}
+
+/* Notification item */
+.notif-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+.notif-dot{width:10px;height:10px;border-radius:50%;background:var(--green);margin-top:5px;flex-shrink:0}
+.notif-dot.read{background:var(--border)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ===== 1. SPLASH ===== -->
+<div class="screen active" id="splash">
+  <div class="splash-logo">🌾</div>
+  <div class="splash-name">KrishiMart</div>
+  <div class="splash-tagline">किसान से आपकी थाली तक<br>Farm to Your Plate — Direct</div>
+  <div class="loader-dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- ===== 2. ROLE SELECTION ===== -->
+<div class="screen" id="roleSelect">
+  <div style="padding:32px 24px 16px">
+    <div style="font-family:'Yatra One',cursive;font-size:28px;color:var(--green-dark);margin-bottom:6px">KrishiMart</div>
+    <div style="font-size:22px;font-weight:600;margin-bottom:8px">आप कौन हैं?</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:28px">Select your role to continue</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:28px">
+      <div class="role-card" onclick="selectRole('farmer')">
+        <div class="icon">🧑‍🌾</div>
+        <div class="rtitle">Farmer</div>
+        <div class="rdesc">Sell your produce</div>
+      </div>
+      <div class="role-card" onclick="selectRole('consumer')">
+        <div class="icon">🛒</div>
+        <div class="rtitle">Consumer</div>
+        <div class="rdesc">Buy fresh directly</div>
+      </div>
+      <div class="role-card" onclick="selectRole('delivery')">
+        <div class="icon">🚚</div>
+        <div class="rtitle">Delivery</div>
+        <div class="rdesc">Deliver orders</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px">✓ No middlemen &nbsp;✓ Fair prices &nbsp;✓ Fresh produce</div>
+  </div>
+</div>
+
+<!-- ===== 3. LOGIN OTP ===== -->
+<div class="screen" id="loginOtp">
+  <div class="topbar"><div class="back" onclick="go('roleSelect')">←</div><h2>Login / Register</h2></div>
+  <div style="padding:28px 24px">
+    <div style="font-size:20px;font-weight:600;margin-bottom:6px">Enter Mobile Number</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:24px">OTP will be sent for verification</div>
+    <div class="form-group">
+      <label class="input-label">📱 Mobile Number</label>
+      <div style="display:flex;gap:8px">
+        <input class="input-field" style="width:70px" value="+91" readonly>
+        <input class="input-field" id="mobileInput" placeholder="10-digit number" maxlength="10" type="tel">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-bottom:20px" onclick="sendOtp()">Send OTP →</button>
+    <div id="otpSection" style="display:none">
+      <div style="font-size:14px;font-weight:500;margin-bottom:4px">Enter OTP sent to your number</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">OTP expires in <span id="timer">30</span>s</div>
+      <div class="otp-boxes">
+        <input class="otp-box" maxlength="1" type="tel"><input class="otp-box" maxlength="1" type="tel"><input class="otp-box" maxlength="1" type="tel"><input class="otp-box" maxlength="1" type="tel"><input class="otp-box" maxlength="1" type="tel"><input class="otp-box" maxlength="1" type="tel">
+      </div>
+      <button class="btn btn-primary" onclick="verifyOtp()">✓ Verify & Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 4. PROFILE SETUP ===== -->
+<div class="screen" id="profileSetup">
+  <div class="topbar"><div class="back" onclick="go('loginOtp')">←</div><h2>Profile Setup</h2></div>
+  <div class="scroll-content">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="width:80px;height:80px;border-radius:50%;background:var(--green-light);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:32px;border:3px dashed var(--green)">+</div>
+      <div style="font-size:13px;color:var(--green);font-weight:500">Add Profile Photo</div>
+    </div>
+    <div class="form-group"><label class="input-label">Full Name / पूरा नाम</label><input class="input-field" placeholder="Enter your full name"></div>
+    <div class="form-group"><label class="input-label">Village / City</label><input class="input-field" placeholder="Village or city name"></div>
+    <div class="form-group"><label class="input-label">District</label><input class="input-field" placeholder="Your district"></div>
+    <div class="form-group"><label class="input-label">PIN Code</label><input class="input-field" placeholder="6-digit PIN" maxlength="6" type="tel"></div>
+    <div class="card" style="background:var(--green-light);border-color:var(--green)">
+      <div style="font-size:13px;font-weight:600;color:var(--green-dark);margin-bottom:4px">Role Selected</div>
+      <div id="roleDisplay" style="font-size:20px;font-weight:700;color:var(--green)"></div>
+    </div>
+    <button class="btn btn-primary" onclick="completeProfile()">Complete Setup →</button>
+  </div>
+</div>
+
+<!-- ===== 5. FARMER DASHBOARD ===== -->
+<div class="screen" id="farmerDash">
+  <div style="background:linear-gradient(135deg,var(--green-dark),var(--green));padding:24px 20px 28px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div class="avatar" style="background:rgba(255,255,255,0.2);color:#fff;font-size:22px">🧑‍🌾</div>
+      <div><div style="font-size:18px;font-weight:600;color:#fff">नमस्ते, Ramesh Ji!</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">Sehore, Madhya Pradesh</div></div>
+      <div style="margin-left:auto;cursor:pointer;color:rgba(255,255,255,0.8);font-size:20px" onclick="go('notifications')">🔔</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">12</div><div style="font-size:11px;color:rgba(255,255,255,0.75)">Products</div></div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">34</div><div style="font-size:11px;color:rgba(255,255,255,0.75)">Orders</div></div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">₹12k</div><div style="font-size:11px;color:rgba(255,255,255,0.75)">Earned</div></div>
+    </div>
+  </div>
+  <div class="scroll-content" style="margin-top:-16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div class="card" style="cursor:pointer;text-align:center" onclick="go('addProduct')"><div style="font-size:28px;margin-bottom:6px">➕</div><div style="font-weight:600;font-size:14px">Add Product</div></div>
+      <div class="card" style="cursor:pointer;text-align:center" onclick="go('manageProducts')"><div style="font-size:28px;margin-bottom:6px">📦</div><div style="font-weight:600;font-size:14px">My Products</div></div>
+      <div class="card" style="cursor:pointer;text-align:center" onclick="go('farmerOrders')"><div style="font-size:28px;margin-bottom:6px">📋</div><div style="font-weight:600;font-size:14px">Orders <span class="badge badge-red" style="font-size:10px">3 New</span></div></div>
+      <div class="card" style="cursor:pointer;text-align:center" onclick="go('earnings')"><div style="font-size:28px;margin-bottom:6px">💰</div><div style="font-weight:600;font-size:14px">Earnings</div></div>
+    </div>
+    <div class="section-title">Recent Orders</div>
+    <div class="card">
+      <div class="list-item" onclick="go('orderDetails')"><div class="avatar" style="width:36px;height:36px;font-size:14px;background:var(--sky-light);color:var(--sky)">PK</div><div class="info"><div class="name">Priya Kaur — Tomatoes 5kg</div><div class="sub">₹250 · 2 hrs ago</div></div><span class="badge badge-amber">Pending</span></div>
+      <div class="list-item" onclick="go('orderDetails')"><div class="avatar" style="width:36px;height:36px;font-size:14px">AV</div><div class="info"><div class="name">Amit Verma — Wheat 20kg</div><div class="sub">₹600 · Yesterday</div></div><span class="badge badge-green">Accepted</span></div>
+    </div>
+  </div>
+  <div class="bottomnav">
+    <button class="bnav-item active" onclick="go('farmerDash')"><span>🏠</span><span class="label">Home</span></button>
+    <button class="bnav-item" onclick="go('manageProducts')"><span>📦</span><span class="label">Products</span></button>
+    <button class="bnav-item" onclick="go('farmerOrders')"><span>📋</span><span class="label">Orders</span></button>
+    <button class="bnav-item" onclick="go('earnings')"><span>💰</span><span class="label">Earnings</span></button>
+    <button class="bnav-item" onclick="go('profilePage')"><span>👤</span><span class="label">Profile</span></button>
+  </div>
+</div>
+
+<!-- ===== 6. ADD PRODUCT ===== -->
+<div class="screen" id="addProduct">
+  <div class="topbar"><div class="back" onclick="go('farmerDash')">←</div><h2>Add Product</h2></div>
+  <div class="scroll-content">
+    <div style="border:2px dashed var(--green);border-radius:var(--r);padding:28px;text-align:center;margin-bottom:20px;cursor:pointer;background:var(--green-light)">
+      <div style="font-size:36px;margin-bottom:8px">📷</div>
+      <div style="font-size:14px;font-weight:500;color:var(--green-dark)">Add Product Photo</div>
+      <div style="font-size:12px;color:var(--muted)">Tap to upload from gallery</div>
+    </div>
+    <div class="form-group"><label class="input-label">Product Name / उत्पाद का नाम</label><input class="input-field" placeholder="e.g. Tomatoes, Wheat, Onion"></div>
+    <div class="row">
+      <div class="form-group" style="flex:1"><label class="input-label">Price (₹/kg)</label><input class="input-field" placeholder="50" type="number"></div>
+      <div class="form-group" style="flex:1"><label class="input-label">Quantity (kg)</label><input class="input-field" placeholder="100" type="number"></div>
+    </div>
+    <div class="form-group"><label class="input-label">Category</label>
+      <div style="margin-top:8px"><span class="chip active">Vegetables</span><span class="chip">Fruits</span><span class="chip">Grains</span><span class="chip">Dairy</span><span class="chip">Pulses</span></div>
+    </div>
+    <div class="form-group"><label class="input-label">Description (optional)</label><textarea class="input-field" rows="3" placeholder="Freshly harvested, pesticide-free..."></textarea></div>
+    <div class="form-group"><label class="input-label">Available From</label><input class="input-field" type="date"></div>
+    <button class="btn btn-primary" style="margin-bottom:12px">+ Add Product</button>
+  </div>
+</div>
+
+<!-- ===== 7. MANAGE PRODUCTS ===== -->
+<div class="screen" id="manageProducts">
+  <div class="topbar"><div class="back" onclick="go('farmerDash')">←</div><h2>My Products</h2><div class="action" onclick="go('addProduct')">+</div></div>
+  <div class="scroll-content">
+    <div class="search-bar"><span>🔍</span><input placeholder="Search products..."></div>
+    <div class="section-title">Active (8)</div>
+    <div id="productList"></div>
+  </div>
+  <div class="bottomnav">
+    <button class="bnav-item" onclick="go('farmerDash')"><span>🏠</span><span class="label">Home</span></button>
+    <button class="bnav-item active" onclick="go('manageProducts')"><span>📦</span><span class="label">Products</span></button>
+    <button class="bnav-item" onclick="go('farmerOrders')"><span>📋</span><span class="label">Orders</span></button>
+    <button class="bnav-item" onclick="go('earnings')"><span>💰</span><span class="label">Earnings</span></button>
+    <button class="bnav-item" onclick="go('profilePage')"><span>👤</span><span class="label">Profile</span></button>
+  </div>
+</div>
+
+<!-- ===== 8. FARMER ORDERS ===== -->
+<div class="screen" id="farmerOrders">
+  <div class="topbar"><div class="back" onclick="go('farmerDash')">←</div><h2>Orders</h2></div>
+  <div style="display:flex;padding:0 20px;gap:8px;border-bottom:1px solid var(--border);background:var(--surface)">
+    <div class="chip active" style="border-radius:0;border:none;border-bottom:2px solid var(--green);padding-bottom:12px;margin-bottom:0">New (3)</div>
+    <div class="chip" style="border-radius:0;border:none;padding-bottom:12px;margin-bottom:0">Active</div>
+    <div class="chip" style="border-radius:0;border:none;padding-bottom:12px;margin-bottom:0">Completed</div>
+  </div>
+  <div class="scroll-content">
+    <div class="card" onclick="go('orderDetails')" style="cursor:pointer">
+      <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:10px"><div><div style="font-weight:600;font-size:15px">Order #ORD-2341</div><div style="font-size:12px;color:var(--muted)">2 hours ago</div></div><span class="badge badge-amber">Pending</span></div>
+      <div class="divider" style="margin:10px 0"></div>
+      <div style="font-size:14px;margin-bottom:4px">🍅 Tomatoes — 5 kg @ ₹50/kg</div>
+      <div style="font-size:15px;font-weight:700;color:var(--green-dark);margin-bottom:12px">Total: ₹250</div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary btn-sm" style="flex:1">✓ Accept</button>
+        <button class="btn btn-outline btn-sm" style="flex:1;border-color:var(--red);color:var(--red)">✗ Reject</button>
+      </div>
+    </div>
+    <div class="card" onclick="go('orderDetails')" style="cursor:pointer">
+      <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:10px"><div><div style="font-weight:600;font-size:15px">Order #ORD-2340</div><div style="font-size:12px;color:var(--muted)">5 hours ago</div></div><span class="badge badge-amber">Pending</span></div>
+      <div class="divider" style="margin:10px 0"></div>
+      <div style="font-size:14px;margin-bottom:4px">🌾 Wheat — 20 kg @ ₹30/kg</div>
+      <div style="font-size:15px;font-weight:700;color:var(--green-dark);margin-bottom:12px">Total: ₹600</div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary btn-sm" style="flex:1">✓ Accept</button>
+        <button class="btn btn-outline btn-sm" style="flex:1;border-color:var(--red);color:var(--red)">✗ Reject</button>
+      </div>
+    </div>
+  </div>
+  <div class="bottomnav">
+    <button class="bnav-item" onclick="go('farmerDash')"><span>🏠</span><span class="label">Home</span></button>
+    <button class="bnav-item" onclick="go('manageProducts')"><span>📦</span><span class="label">Products</span></button>
+    <button class="bnav-item active" onclick="go('farmerOrders')"><span>📋</span><span class="label">Orders</span></button>
+    <button class="bnav-item" onclick="go('earnings')"><span>💰</span><span class="label">Earnings</span></button>
+    <button class="bnav-item" onclick="go('profilePage')"><span>👤</span><span class="label">Profile</span></button>
+  </div>
+</div>
+
+<!-- ===== 9. ORDER DETAILS ===== -->
+<div class="screen" id="orderDetails">
+  <div class="topbar"><div class="back" onclick="go('farmerOrders')">←</div><h2>Order #ORD-2341</h2></div>
+  <div class="scroll-content">
+    <span class="badge badge-amber" style="margin-bottom:16px;font-size:13px;padding:6px 14px">⏳ Pending Acceptance</span>
+    <div class="section-title">Buyer Info</div>
+    <div class="card">
+      <div style="display:flex;gap:12px;align-items:center"><div class="avatar">PK</div><div><div style="font-weight:600">Priya Kaur</div><div style="font-size:13px;color:var(--muted)">📱 +91 98765 43210</div><div style="font-size:13px;color:var(--muted)">📍 Indore, MP</div></div></div>
+    </div>
+    <div class="section-title">Order Items</div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px"><div style="font-size:32px">🍅</div><div style="flex:1"><div style="font-weight:600">Tomatoes</div><div style="font-size:13px;color:var(--muted)">5 kg × ₹50/kg</div></div><div style="font-size:17px;font-weight:700;color:var(--green-dark)">₹250</div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--muted)">Subtotal</span><span>₹250</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--muted)">Delivery</span><span style="color:var(--green)">FREE</span></div>
+      <div class="divider"></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-weight:700">Total</span><span style="font-weight:700;color:var(--green-dark);font-size:18px">₹250</span></div>
+    </div>
+    <div class="section-title">Update Status</div>
+    <div class="card">
+      <select class="input-field"><option>Accepted</option><option>Ready for Pickup</option><option>Handed to Delivery</option></select>
+    </div>
+    <div style="display:flex;gap:12px">
+      <button class="btn btn-primary" style="flex:1">✓ Accept Order</button>
+      <button class="btn btn-sm" style="flex:1;border:1.5px solid var(--red);color:var(--red);background:transparent">✗ Reject</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 10. EARNINGS ===== -->
+<div class="screen" id="earnings">
+  <div style="background:linear-gradient(135deg,#1a4a2a,var(--green));padding:28px 20px">
+    <div style="color:rgba(255,255,255,0.7);font-size:13px;margin-bottom:4px">Total Earnings</div>
+    <div style="font-size:38px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">₹12,480</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px">↑ 23% from last month</div>
+  </div>
+  <div class="scroll-content">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="val">₹4.2k</div><div class="lbl">This Week</div></div>
+      <div class="stat-card amber"><div class="val">34</div><div class="lbl">Orders Done</div></div>
+      <div class="stat-card sky"><div class="val">₹367</div><div class="lbl">Avg. Order</div></div>
+      <div class="stat-card earth"><div class="val">₹0</div><div class="lbl">Pending</div></div>
+    </div>
+    <div class="section-title">Payment History</div>
+    <div class="card">
+      <div class="list-item"><div style="width:36px;height:36px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:16px">💳</div><div class="info"><div class="name">₹600 — Wheat Order</div><div class="sub">Paid to UPI · 1 May</div></div><span class="badge badge-green">Received</span></div>
+      <div class="list-item"><div style="width:36px;height:36px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:circle;display:flex;align-items:center;justify-content:center;font-size:16px">💳</div><div class="info"><div class="name">₹1,200 — Onion Bulk</div><div class="sub">Paid to UPI · 30 Apr</div></div><span class="badge badge-green">Received</span></div>
+      <div class="list-item"><div style="width:36px;height:36px;border-radius:50%;background:var(--amber-light);display:flex;align-items:center;justify-content:center;font-size:16px">⏳</div><div class="info"><div class="name">₹450 — Tomatoes</div><div class="sub">COD · In transit</div></div><span class="badge badge-amber">Pending</span></div>
+    </div>
+  </div>
+  <div class="bottomnav">
+    <button class="bnav-item" onclick="go('farmerDash')"><span>🏠</span><span class="label">Home</span></button>
+    <button class="bnav-item" onclick="go('manageProducts')"><span>📦</span><span class="label">Products</span></button>
+    <button class="bnav-item" onclick="go('farmerOrders')"><span>📋</span><span class="label">Orders</span></button>
+    <button class="bnav-item active" onclick="go('earnings')"><span>💰</span><span class="label">Earnings</span></button>
+    <button class="bnav-item" onclick="go('profilePage')"><span>👤</span><span class="label">Profile</span></button>
+  </div>
+</div>
+
+<!-- ===== 11. CONSUMER HOME ===== -->
+<div class="screen" id="consumerHome">
+  <div style="background:linear-gradient(135deg,#0d4a2a,var(--green));padding:20px 20px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div><div style="font-size:13px;color:rgba(255,255,255,0.7)">📍 Bhopal, MP</div><div style="font-family:'Yatra One',cursive;font-size:22px;color:#fff">KrishiMart</div></div>
+      <div style="display:flex;gap:8px"><div style="cursor:pointer;color:rgba(255,255,255,0.8);font-size:20px" onclick="go('notifications')">🔔</div><div style="cursor:pointer;color:rgba(255,255,255,0.8);font-size:20px" onclick="go('cartPage')">🛒</div></div>
+    </div>
+    <div style="background:rgba(255,255,255,0.15);border-radius:40px;display:flex;align-items:center;gap:10px;padding:10px 16px">
+      <span style="font-size:16px">🔍</span>
+      <input placeholder="Search fresh produce..." style="flex:1;border:none;outline:none;background:transparent;color:#fff;font-size:14px;font-family:inherit" oninput="filterProducts(this.value)">
+    </div>
+  </div>
+  <div class="scroll-content">
+    <div style="margin-bottom:16px;overflow-x:auto;white-space:nowrap;margin-right:-20px;padding-right:20px">
+      <span class="chip active">All</span><span class="chip">🥦 Vegetables</span><span class="chip">🍎 Fruits</span><span class="chip">🌾 Grains</span><span class="chip">🥛 Dairy</span><span class="chip">🫘 Pulses</span>
+    </div>
+    <div style="background:linear-gradient(135deg,var(--amber-light),var(--green-light));border-radius:var(--r);padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:36px">🌾</span>
+      <div><div style="font-weight:700;font-size:15px">Fresh from the Farm!</div><div style="font-size:13px;color:var(--muted)">Direct from 200+ farmers near you</div></div>
+    </div>
+    <div class="section-title">Featured Products</div>
+    <div class="product-grid" id="consumerProductGrid"></div>
+    <div class="section-title">Nearby Farmers</div>
+    <div class="card">
+      <div class="list-item" onclick="go('consumerHome')"><div style="font-size:28px">🧑‍🌾</div><div class="info"><div class="name">Ramesh Patel</div><div class="sub">Sehore · 12 km · Vegetables</div></div><div style="color:var(--amber);font-size:13px;font-weight:600">⭐ 4.8</div></div>
+      <div class="list-item" onclick="go('consumerHome')"><div style="font-size:28px">🧑‍🌾</div><div class="info"><div class="name">Sunita Devi</div><div class="sub">Vidisha · 28 km · Fruits</div></div><div style="color:var(--amber);font-size:13px;font-weight:600">⭐ 4.9</div></div>
+    </div>
+  </div>
+  <div class="bottomnav">
+    <button class="bnav-item active" onclick="go('consumerHome')"><span>🏠</span><span class="label">Home</span></button>
+    <button class="bnav-item" onclick="go('cartPage')"><span>🛒</span><span class="label">Cart</span></button>
+    <button class="bnav-item" onclick="go('orderHistory')"><span>📋</span><span class="label">Orders</span></button>
+    <button class="bnav-item" onclick="go('notifications')"><span>🔔</span><span class="label">Alerts</span></button>
+    <button class="bnav-item" onclick="go('profilePage')"><span>👤</span><span class="label">Profile</span></button>
+  </div>
+</div>
+
+<!-- ===== 12. PRODUCT DETAILS ===== -->
+<div class="screen" id="productDetails">
+  <div style="position:relative">
+    <div style="height:240px;background:linear-gradient(135deg,var(--green-light),var(--amber-light));display:flex;align-items:center;justify-content:center;font-size:90px">🍅</div>
+    <div class="back" style="position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.9)" onclick="go('consumerHome')">←</div>
+    <div class="action" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.9)">♡</div>
+  </div>
+  <div class="scroll-content">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+      <div><div style="font-size:22px;font-weight:700">Fresh Tomatoes</div><div style="font-size:13px;color:var(--muted)">🏷 Vegetables · Organic</div></div>
+      <div style="text-align:right"><div style="font-size:24px;font-weight:700;color:var(--green-dark)">₹50<span style="font-size:14px;color:var(--muted)">/kg</span></div></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:16px">
+      <span style="font-size:13px;color:var(--amber)">⭐ 4.8 (124 reviews)</span>
+      <span class="badge badge-green">In Stock · 80 kg</span>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:28px">🧑‍🌾</div>
+      <div style="flex:1"><div style="font-weight:600">Ramesh Patel</div><div style="font-size:12px;color:var(--muted)">Sehore, MP · Direct Farmer</div></div>
+      <div style="font-size:13px;color:var(--sky);font-weight:500;cursor:pointer">View Farm →</div>
+    </div>
+    <div class="section-title">Description</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px">Freshly harvested red tomatoes, organically grown without pesticides. Picked directly from the farm this morning. Best for cooking and salads.</div>
+    <div class="section-title">Select Quantity</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;border:1.5px solid var(--green);border-radius:40px;overflow:hidden">
+        <button style="width:40px;height:40px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--green)">−</button>
+        <span style="min-width:40px;text-align:center;font-weight:700;font-size:16px">2</span>
+        <button style="width:40px;height:40px;border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--green)">+</button>
+      </div>
+      <span style="font-size:14px;color:var(--muted)">kg · Total: <b style="color:var(--green-dark)">₹100</b></span>
+    </div>
+    <div style="display:flex;gap:12px">
+      <button class="btn btn-outline" style="flex:1" onclick="go('cartPage')">🛒 Add to Cart</button>
+      <button class="btn btn-primary" style="flex:1" onclick="go('checkout')">Buy Now →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 13. CART PAGE ===== -->
+<div class="screen" id="cartPage">
+  <div class="topbar"><div class="back" onclick="go('consumerHome')">←</div><h2>My Cart</h2><div class="action">🗑</div></div>
+  <div class="scroll-content">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+        <div style="font-size:28px">🍅</div>
+        <div style="flex:1"><div style="font-weight:600">Tomatoes</div><div style="font-size:12px;color:var(--muted)">Ramesh Patel · ₹50/kg</div></div>
+        <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:40px"><button style="width:32px;height:32px;border:none;background:transparent;cursor:pointer">−</button><span style="width:28px;text-align:center;font-size:14px;font-weight:600">2</span><button style="width:32px;height:32px;border:none;background:transparent;cursor:pointer">+</button></div>
+        <div style="font-weight:700;color:var(--green-dark);min-width:48px;text-align:right">₹100</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:28px">🧅</div>
+        <div style="flex:1"><div style="font-weight:600">Onions</div><div style="font-size:12px;color:var(--muted)">Sunita Devi · ₹30/kg</div></div>
+        <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:40px"><button style="width:32px;height:32px;border:none;background:transparent;cursor:pointer">−</button><span style="width:28px;text-align:center;font-size:14px;font-weight:600">3</span><button style="width:32px;height:32px;border:none;background:transparent;cursor:pointer">+</button></div>
+        <div style="font-weight:700;color:var(--green-dark);min-width:48px;text-align:right">₹90</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px">Have a promo code?</div>
+      <div style="display:flex;gap:8px"><input class="input-field" placeholder="Enter code" style="flex:1"><button class="btn btn-outline btn-sm" style="flex-shrink:0;width:auto;padding:0 16px">Apply</button></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--muted)">Subtotal (2 items)</span><span>₹190</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--muted)">Delivery Charge</span><span>₹30</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--green)">Promo Discount</span><span style="color:var(--green)">−₹0</span></div>
+      <div class="divider"></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-weight:700;font-size:16px">Total</span><span style="font-weight:700;font-size:18px;color:var(--green-dark)">₹220</span></div>
+    </div>
+    <button class="btn btn-primary" onclick="go('checkout')">Proceed to Checkout →</button>
+  </div>
+</div>
+
+<!-- ===== 14. CHECKOUT ===== -->
+<div class="screen" id="checkout">
+  <div class="topbar"><div class="back" onclick="go('cartPage')">←</div><h2>Checkout</h2></div>
+  <div class="scroll-content">
+    <div class="section-title">Delivery Address</div>
+    <div class="card" style="cursor:pointer">
+      <div style="display:flex;align-items:start;gap:10px"><span style="font-size:20px">📍</span><div style="flex:1"><div style="font-weight:600;margin-bottom:2px">Home</div><div style="font-size:13px;color:var(--muted)">123, Gandhi Nagar, Bhopal, MP 462001</div></div><span style="font-size:13px;color:var(--green);font-weight:500">Change</span></div>
+    </div>
+    <button class="btn btn-outline" style="margin-bottom:20px;font-size:14px">+ Add New Address</button>
+    <div class="section-title">Delivery Slot</div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:4px">
+        <div style="flex-shrink:0;border:1.5px solid var(--green);border-radius:var(--rs);padding:8px 14px;text-align:center;background:var(--green-light)"><div style="font-size:11px;color:var(--muted)">Today</div><div style="font-size:13px;font-weight:600;color:var(--green-dark)">3–6 PM</div></div>
+        <div style="flex-shrink:0;border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 14px;text-align:center"><div style="font-size:11px;color:var(--muted)">Tomorrow</div><div style="font-size:13px;font-weight:600">8–11 AM</div></div>
+        <div style="flex-shrink:0;border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 14px;text-align:center"><div style="font-size:11px;color:var(--muted)">Tomorrow</div><div style="font-size:13px;font-weight:600">2–5 PM</div></div>
+      </div>
+    </div>
+    <div class="section-title">Order Summary</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--muted)">Items (2)</span><span>₹190</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--muted)">Delivery</span><span>₹30</span></div>
+      <div class="divider"></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-weight:700">Total</span><span style="font-weight:700;font-size:18px;color:var(--green-dark)">₹220</span></div>
+    </div>
+    <button class="btn btn-primary" onclick="go('paymentPage')">Continue to Payment →</button>
+  </div>
+</div>
+
+<!-- ===== 15. PAYMENT PAGE ===== -->
+<div class="screen" id="paymentPage">
+  <div class="topbar"><div class="back" onclick="go('checkout')">←</div><h2>Payment</h2></div>
+  <div class="scroll-content">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:36px;font-weight:700;color:var(--green-dark);font-family:'Yatra One',cursive">₹220</div>
+      <div style="font-size:13px;color:var(--muted)">Total Amount to Pay</div>
+    </div>
+    <div class="section-title">Select Payment Method</div>
+    <div class="card" style="cursor:pointer;border-color:var(--green);background:var(--green-light)">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:var(--surface);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:20px">📱</div><div style="flex:1"><div style="font-weight:600">UPI Payment</div><div style="font-size:12px;color:var(--muted)">GPay, PhonePe, Paytm, BHIM</div></div><div style="width:18px;height:18px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px">✓</div></div>
+    </div>
+    <div class="card" style="cursor:pointer">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:var(--sky-light);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:20px">💳</div><div style="flex:1"><div style="font-weight:600">Razorpay</div><div style="font-size:12px;color:var(--muted)">Credit / Debit Card, Netbanking</div></div><div style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border)"></div></div>
+    </div>
+    <div class="card" style="cursor:pointer">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:var(--amber-light);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:20px">💵</div><div style="flex:1"><div style="font-weight:600">Cash on Delivery</div><div style="font-size:12px;color:var(--muted)">Pay when you receive</div></div><div style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border)"></div></div>
+    </div>
+    <div class="card" style="background:var(--green-light);border-color:var(--green)">
+      <div style="font-size:13px;color:var(--green-dark)">🔒 100% Secure Payment · Your money is protected</div>
+    </div>
+    <button class="btn btn-primary" onclick="go('orderTracking')">Pay ₹220 →</button>
+  </div>
+</div>
+
+<!-- ===== 16. ORDER TRACKING ===== -->
+<div class="screen" id="orderTracking">
+  <div class="topbar"><div class="back" onclick="go('consumerHome')">←</div><h2>Order Tracking</h2></div>
+  <div class="scroll-content">
+    <div style="text-align:center;margin-bottom:4px"><span class="badge badge-amber" style="font-size:13px;padding:6px 16px">🚚 Out for Delivery</span></div>
+    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:20px">Estimated: Today 3–6 PM</div>
+    <div class="status-bar">
+      <div class="status-step done"><div class="status-dot">✓</div><div class="slabel">Confirmed</div></div>
+      <div class="status-step done"><div class="status-dot">✓</div><div class="slabel">Preparing</div></div>
+      <div class="status-step done"><div class="status-dot">🚚</div><div class="slabel">On the way</div></div>
+      <div class="status-step"><div class="status-dot">🏠</div><div class="slabel">Delivered</div></div>
+    </div>
+    <div class="map-view"><span class="map-pin">📍</span><div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.9);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap">Delivery agent · 2 km away</div></div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px"><div style="font-size:28px">🏍</div><div style="flex:1"><div style="font-weight:600">Mohan Kumar</div><div style="font-size:12px;color:var(--muted)">Delivery Agent · ⭐ 4.7</div></div><div style="display:flex;gap:8px"><div style="width:36px;height:36px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer">📞</div><div style="width:36px;height:36px;border-radius:50%;background:var(--sky-light);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer">💬</div></div></div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px">Order #ORD-2341</div>
+      <div style="font-size:14px;margin-bottom:4px">🍅 Tomatoes 2kg &nbsp;&nbsp; 🧅 Onions 3kg</div>
+      <div style="font-size:15px;font-weight:700;color:var(--green-dark)">₹220 · UPI Paid ✓</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 17. ORDER HISTORY ===== -->
+<div class="screen" id="orderHistory">
+  <div class="topbar"><div class="back" onclick="go('consumerHome')">←</div><h2>My Orders</h2></div>
+  <div class="scroll-content">
+    <div class="card" onclick="go('orderTracking')" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600">#ORD-2341</span><span class="badge badge-amber">In Transit</span></div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Today · 2 items</div>
+      <div style="font-size:14px;margin-bottom:8px">🍅 Tomatoes · 🧅 Onions</div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;color:var(--green-dark)">₹220</span><span style="font-size:13px;color:var(--sky);font-weight:500">Track Order →</span></div>
+    </div>
+    <div class="card" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600">#ORD-2318</span><span class="badge badge-green">Delivered</span></div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">28 Apr · 3 items</div>
+      <div style="font-size:14px;margin-bottom:8px">🥔 Potatoes · 🌾 Wheat · 🥛 Milk</div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;color:var(--green-dark)">₹480</span><span style="font-size:13px;color:var(--green);font-weight:500">Reorder ↺</span></div>
+    </div>
+    <div class="card" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600">#ORD-2290</span><span class="badge badge-green">Delivered</span></div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">20 Apr · 1 item</div>
+      <div style="font-size:14px;margin-bottom:8px">🍅 Tomatoes</div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;color:var(--green-dark)">₹100</span><span style="font-size:13px;color:var(--green);font-weight:500">Reorder ↺</span></div>
+    </div>
+  </div>
+  <div class="bottomnav">
+    <button class="bnav-item" onclick="go('consumerHome')"><span>🏠</span><span class="label">Home</span></button>
+    <button class="bnav-item" onclick="go('cartPage')"><span>🛒</span><span class="label">Cart</span></button>
+    <button class="bnav-item active" onclick="go('orderHistory')"><span>📋</span><span class="label">Orders</span></button>
+    <button class="bnav-item" onclick="go('notifications')"><span>🔔</span><span class="label">Alerts</span></button>
+    <button class="bnav-item" onclick="go('profilePage')"><span>👤</span><span class="label">Profile</span></button>
+  </div>
+</div>
+
+<!-- ===== 18. DELIVERY DASHBOARD ===== -->
+<div class="screen" id="deliveryDash">
+  <div style="background:linear-gradient(135deg,#1a3a5a,var(--sky));padding:24px 20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div class="avatar" style="background:rgba(255,255,255,0.2);color:#fff;font-size:20px">🚚</div>
+      <div><div style="font-size:17px;font-weight:600;color:#fff">Mohan Kumar</div><div style="font-size:12px;color:rgba(255,255,255,0.7)">Delivery Agent · Bhopal</div></div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:#4caf50"></div><div style="font-size:12px;color:rgba(255,255,255,0.8)">Online</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">5</div><div style="font-size:11px;color:rgba(255,255,255,0.75)">Assigned</div></div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">18</div><div style="font-size:11px;color:rgba(255,255,255,0.75)">Delivered</div></div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">₹820</div><div style="font-size:11px;color:rgba(255,255,255,0.75)">Today</div></div>
+    </div>
+  </div>
+  <div class="scroll-content">
+    <div class="section-title">Assigned Orders (5)</div>
+    <div class="card" onclick="go('pickupPage')" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600">#ORD-2341</span><span class="badge badge-amber">Pickup Pending</span></div>
+      <div style="font-size:13px;margin-bottom:4px">📍 Pickup: Ramesh Patel, Sehore</div>
+      <div style="font-size:13px;margin-bottom:8px">🏠 Deliver: Priya Kaur, Bhopal</div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:700;color:var(--sky)">₹220 · UPI</span><button class="btn btn-primary btn-sm" onclick="go('pickupPage')">Start Pickup</button></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600">#ORD-2342</span><span class="badge badge-green">Picked Up</span></div>
+      <div style="font-size:13px;margin-bottom:4px">📍 Pickup: Sunita Devi, Vidisha</div>
+      <div style="font-size:13px;margin-bottom:8px">🏠 Deliver: Amit Sharma, Bhopal</div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:700;color:var(--sky)">₹480 · COD</span><button class="btn btn-primary btn-sm" style="background:var(--amber)" onclick="go('deliveryTracking')">Navigate</button></div>
+    </div>
+  </div>
+  <div class="bottomnav">
+    <button class="bnav-item active" onclick="go('deliveryDash')"><span>🏠</span><span class="label">Home</span></button>
+    <button class="bnav-item" onclick="go('pickupPage')"><span>📦</span><span class="label">Pickup</span></button>
+    <button class="bnav-item" onclick="go('deliveryTracking')"><span>🗺</span><span class="label">Navigate</span></button>
+    <button class="bnav-item" onclick="go('profilePage')"><span>👤</span><span class="label">Profile</span></button>
+  </div>
+</div>
+
+<!-- ===== 19. PICKUP PAGE ===== -->
+<div class="screen" id="pickupPage">
+  <div class="topbar"><div class="back" onclick="go('deliveryDash')">←</div><h2>Pickup Order</h2></div>
+  <div class="scroll-content">
+    <div class="card" style="background:var(--green-light);border-color:var(--green)">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Pickup Location</div>
+      <div style="font-weight:600;font-size:16px;margin-bottom:4px">🧑‍🌾 Ramesh Patel's Farm</div>
+      <div style="font-size:13px;color:var(--muted)">Survey No. 42, Nasrullaganj Road, Sehore, MP</div>
+      <div style="margin-top:10px;font-size:13px;color:var(--sky);font-weight:500;cursor:pointer">📍 Open in Maps →</div>
+    </div>
+    <div class="map-view" style="height:160px"><span class="map-pin">🏡</span></div>
+    <div class="section-title">Items to Pickup</div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="font-size:24px">🍅</div><div style="flex:1"><div style="font-weight:600">Tomatoes</div><div style="font-size:13px;color:var(--muted)">2 kg</div></div></div>
+      <div style="display:flex;align-items:center;gap:10px"><div style="font-size:24px">🧅</div><div style="flex:1"><div style="font-weight:600">Onions</div><div style="font-size:13px;color:var(--muted)">3 kg</div></div></div>
+    </div>
+    <div class="section-title">Delivery Destination</div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:4px">🏠 Priya Kaur</div>
+      <div style="font-size:13px;color:var(--muted)">123, Gandhi Nagar, Bhopal · +91 98765 43210</div>
+    </div>
+    <div class="section-title">Verify Pickup</div>
+    <div class="card">
+      <div style="font-size:14px;margin-bottom:12px">Confirm you have received all items from the farmer</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font-size:14px">✓ Tomatoes 2kg</span><div class="toggle-switch on"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px">✓ Onions 3kg</span><div class="toggle-switch on"></div></div>
+    </div>
+    <button class="btn btn-primary" onclick="go('deliveryTracking')">✓ Confirm Pickup · Start Delivery</button>
+  </div>
+</div>
+
+<!-- ===== 20. DELIVERY TRACKING ===== -->
+<div class="screen" id="deliveryTracking">
+  <div class="topbar"><div class="back" onclick="go('deliveryDash')">←</div><h2>En Route to Delivery</h2></div>
+  <div class="scroll-content">
+    <div class="map-view" style="height:220px">
+      <span class="map-pin">🏍</span>
+      <div style="position:absolute;top:12px;left:12px;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600">2.3 km · ~8 min</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="card-sm" style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--sky)">2.3 km</div><div style="font-size:11px;color:var(--muted)">Distance</div></div>
+      <div class="card-sm" style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--green)">~8 min</div><div style="font-size:11px;color:var(--muted)">ETA</div></div>
+      <div class="card-sm" style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--amber)">₹220</div><div style="font-size:11px;color:var(--muted)">Collect</div></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:4px">Customer: Priya Kaur</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">123, Gandhi Nagar, Bhopal · +91 98765 43210</div>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm" style="flex:1">📞 Call</button><button class="btn btn-outline btn-sm" style="flex:1">💬 Message</button></div>
+    </div>
+    <button class="btn btn-primary" onclick="go('deliveryComplete')">Mark as Delivered ✓</button>
+  </div>
+</div>
+
+<!-- ===== 21. DELIVERY COMPLETE ===== -->
+<div class="screen" id="deliveryComplete">
+  <div class="topbar"><div class="back" onclick="go('deliveryDash')">←</div><h2>Complete Delivery</h2></div>
+  <div class="scroll-content">
+    <div style="text-align:center;padding:28px 20px">
+      <div style="width:80px;height:80px;background:var(--green-light);border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:36px;border:3px solid var(--green)">✓</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:6px">Order Delivered!</div>
+      <div style="font-size:14px;color:var(--muted)">#ORD-2341 · Priya Kaur</div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:10px">Delivery Proof</div>
+      <div style="border:2px dashed var(--border);border-radius:var(--rs);padding:24px;text-align:center;cursor:pointer;margin-bottom:12px;background:var(--bg)"><div style="font-size:28px;margin-bottom:6px">📷</div><div style="font-size:13px;color:var(--muted)">Take a photo as delivery proof</div></div>
+      <div class="form-group"><label class="input-label">Delivery OTP from Customer</label><input class="input-field" placeholder="Enter 4-digit OTP" maxlength="4" type="tel"></div>
+    </div>
+    <div class="card" style="background:var(--amber-light);border-color:var(--amber)">
+      <div style="font-weight:600;margin-bottom:4px">💵 Collect Payment</div>
+      <div style="font-size:24px;font-weight:700;color:#7a5000;font-family:'Yatra One',cursive">₹220 COD</div>
+    </div>
+    <button class="btn btn-primary" onclick="go('deliveryDash')">✓ Confirm Delivery</button>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- ===== 22. ADMIN DASHBOARD ===== -->
+<div class="screen" id="adminDash">
+  <div style="background:linear-gradient(135deg,#2c1654,#5e35b1);padding:24px 20px">
+    <div style="color:rgba(255,255,255,0.7);font-size:13px">Admin Panel</div>
+    <div style="font-family:'Yatra One',cursive;font-size:24px;color:#fff;margin-bottom:16px">KrishiMart Admin</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:20px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">2.4k</div><div style="font-size:10px;color:rgba(255,255,255,0.7)">Users</div></div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:20px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">842</div><div style="font-size:10px;color:rgba(255,255,255,0.7)">Orders</div></div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:14px;text-align:center"><div style="font-size:20px;font-weight:700;color:#fff;font-family:'Yatra One',cursive">₹4.2L</div><div style="font-size:10px;color:rgba(255,255,255,0.7)">Revenue</div></div>
+    </div>
+  </div>
+  <div class="scroll-content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div class="card" style="cursor:pointer" onclick="go('userManagement')"><div style="font-size:24px;margin-bottom:6px">👥</div><div style="font-weight:600;font-size:14px">Users</div><div style="font-size:12px;color:var(--muted)">Manage all roles</div></div>
+      <div class="card" style="cursor:pointer" onclick="go('productMonitoring')"><div style="font-size:24px;margin-bottom:6px">📦</div><div style="font-weight:600;font-size:14px">Products</div><div style="font-size:12px;color:var(--muted)">All listings</div></div>
+      <div class="card" style="cursor:pointer" onclick="go('orderMonitoring')"><div style="font-size:24px;margin-bottom:6px">📋</div><div style="font-weight:600;font-size:14px">Orders</div><div style="font-size:12px;color:var(--muted)">Track all orders</div></div>
+      <div class="card" style="cursor:pointer" onclick="go('disputeManagement')"><div style="font-size:24px;margin-bottom:6px">⚠️</div><div style="font-weight:600;font-size:14px">Disputes <span class="badge badge-red" style="font-size:10px">3</span></div><div style="font-size:12px;color:var(--muted)">Complaints</div></div>
+      <div class="card" style="cursor:pointer;grid-column:1/-1" onclick="go('analytics')"><div style="font-size:24px;margin-bottom:6px">📊</div><div style="font-weight:600;font-size:14px">Analytics</div><div style="font-size:12px;color:var(--muted)">Sales & demand trends</div></div>
+    </div>
+    <div class="section-title">Platform Health</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px">Active Farmers</span><span style="font-size:13px;font-weight:600">284 / 320</span></div>
+      <div class="progress-bar" style="margin-bottom:12px"><div class="progress-fill" style="width:89%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px">Order Completion</span><span style="font-size:13px;font-weight:600">94%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:94%"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 23. USER MANAGEMENT ===== -->
+<div class="screen" id="userManagement">
+  <div class="topbar"><div class="back" onclick="go('adminDash')">←</div><h2>User Management</h2></div>
+  <div style="display:flex;padding:0 20px;gap:12px;border-bottom:1px solid var(--border);background:var(--surface)">
+    <div class="chip active" style="border-radius:0;border:none;border-bottom:2px solid var(--green);padding-bottom:12px;margin-bottom:0">Farmers (320)</div>
+    <div class="chip" style="border-radius:0;border:none;padding-bottom:12px;margin-bottom:0">Consumers</div>
+    <div class="chip" style="border-radius:0;border:none;padding-bottom:12px;margin-bottom:0">Delivery</div>
+  </div>
+  <div class="scroll-content">
+    <div class="search-bar"><span>🔍</span><input placeholder="Search users..."></div>
+    <div class="card">
+      <div class="list-item"><div class="avatar">RP</div><div class="info"><div class="name">Ramesh Patel</div><div class="sub">Sehore, MP · 12 products</div></div><span class="badge badge-green">Active</span></div>
+      <div class="list-item"><div class="avatar" style="background:var(--amber-light);color:#7a5000">SD</div><div class="info"><div class="name">Sunita Devi</div><div class="sub">Vidisha, MP · 8 products</div></div><span class="badge badge-green">Active</span></div>
+      <div class="list-item"><div class="avatar" style="background:var(--red-light);color:var(--red)">MK</div><div class="info"><div class="name">Mahesh Kumar</div><div class="sub">Raisen, MP · 2 products</div></div><span class="badge badge-red">Suspended</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 24. PRODUCT MONITORING ===== -->
+<div class="screen" id="productMonitoring">
+  <div class="topbar"><div class="back" onclick="go('adminDash')">←</div><h2>Product Monitoring</h2></div>
+  <div class="scroll-content">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="val">1,284</div><div class="lbl">Total Products</div></div>
+      <div class="stat-card amber"><div class="val">24</div><div class="lbl">Pending Review</div></div>
+    </div>
+    <div class="search-bar"><span>🔍</span><input placeholder="Search products..."></div>
+    <div class="card">
+      <div class="list-item"><div style="font-size:24px">🍅</div><div class="info"><div class="name">Tomatoes — Ramesh Patel</div><div class="sub">₹50/kg · 80 kg available</div></div><span class="badge badge-green">Live</span></div>
+      <div class="list-item"><div style="font-size:24px">🌾</div><div class="info"><div class="name">Wheat — Mahesh Kumar</div><div class="sub">₹28/kg · 200 kg</div></div><span class="badge badge-amber">Review</span></div>
+      <div class="list-item"><div style="font-size:24px">🥛</div><div class="info"><div class="name">Buffalo Milk — Sunita Devi</div><div class="sub">₹55/L · 50 L</div></div><span class="badge badge-green">Live</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 25. ORDER MONITORING ===== -->
+<div class="screen" id="orderMonitoring">
+  <div class="topbar"><div class="back" onclick="go('adminDash')">←</div><h2>All Orders</h2></div>
+  <div class="scroll-content">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="val">842</div><div class="lbl">Total Orders</div></div>
+      <div class="stat-card amber"><div class="val">48</div><div class="lbl">Active Now</div></div>
+    </div>
+    <div class="card">
+      <div class="list-item"><div class="info"><div class="name">#ORD-2341 · Priya Kaur</div><div class="sub">Tomatoes 2kg · ₹220</div></div><span class="badge badge-amber">Transit</span></div>
+      <div class="list-item"><div class="info"><div class="name">#ORD-2340 · Amit Verma</div><div class="sub">Wheat 20kg · ₹600</div></div><span class="badge badge-green">Delivered</span></div>
+      <div class="list-item"><div class="info"><div class="name">#ORD-2339 · Ravi Sharma</div><div class="sub">Onion 5kg · ₹150</div></div><span class="badge badge-green">Delivered</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 26. DISPUTE MANAGEMENT ===== -->
+<div class="screen" id="disputeManagement">
+  <div class="topbar"><div class="back" onclick="go('adminDash')">←</div><h2>Disputes</h2></div>
+  <div class="scroll-content">
+    <div class="card" style="background:var(--red-light);border-color:var(--red);margin-bottom:16px"><div style="font-size:13px;font-weight:600;color:var(--red)">⚠️ 3 Open Disputes Need Attention</div></div>
+    <div class="card" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600">Dispute #D-042</span><span class="badge badge-red">Open</span></div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px">Quality Issue — Tomatoes were rotten</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Priya Kaur vs Ramesh Patel · ₹220</div>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm">Refund</button><button class="btn btn-outline btn-sm">Investigate</button><button class="btn btn-sm" style="border:1px solid var(--muted);color:var(--muted);background:transparent">Reject</button></div>
+    </div>
+    <div class="card" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:600">Dispute #D-041</span><span class="badge badge-amber">Under Review</span></div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px">Wrong quantity delivered</div>
+      <div style="font-size:12px;color:var(--muted)">Amit Verma · ₹600 order</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 27. ANALYTICS ===== -->
+<div class="screen" id="analytics">
+  <div class="topbar"><div class="back" onclick="go('adminDash')">←</div><h2>Analytics</h2></div>
+  <div class="scroll-content">
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <span class="chip active">This Week</span><span class="chip">Month</span><span class="chip">Year</span>
+    </div>
+    <div class="stat-grid" style="margin-bottom:16px">
+      <div class="stat-card"><div class="val">₹84k</div><div class="lbl">Revenue ↑12%</div></div>
+      <div class="stat-card amber"><div class="val">342</div><div class="lbl">Orders ↑8%</div></div>
+    </div>
+    <div class="section-title">Sales Trend</div>
+    <div class="card" style="padding:16px 12px">
+      <div style="display:flex;align-items:end;gap:6px;height:120px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="background:var(--green);border-radius:4px 4px 0 0;width:100%" id="bar1" style="height:60%"></div><div style="font-size:10px;color:var(--muted)">Mon</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="background:var(--green);border-radius:4px 4px 0 0;width:100%;height:75%"></div><div style="font-size:10px;color:var(--muted)">Tue</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="background:var(--green);border-radius:4px 4px 0 0;width:100%;height:55%"></div><div style="font-size:10px;color:var(--muted)">Wed</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="background:var(--green-mid);border-radius:4px 4px 0 0;width:100%;height:90%"></div><div style="font-size:10px;color:var(--muted)">Thu</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="background:var(--green-mid);border-radius:4px 4px 0 0;width:100%;height:100%"></div><div style="font-size:10px;color:var(--muted)">Fri</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="background:var(--green);border-radius:4px 4px 0 0;width:100%;height:80%"></div><div style="font-size:10px;color:var(--muted)">Sat</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="background:var(--amber);border-radius:4px 4px 0 0;width:100%;height:65%"></div><div style="font-size:10px;color:var(--muted)">Sun</div></div>
+      </div>
+    </div>
+    <div class="section-title" style="margin-top:16px">Top Products</div>
+    <div class="card">
+      <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>🍅 Tomatoes</span><span style="font-weight:600">32%</span></div><div class="progress-bar"><div class="progress-fill" style="width:32%"></div></div></div>
+      <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>🧅 Onions</span><span style="font-weight:600">24%</span></div><div class="progress-bar"><div class="progress-fill" style="width:24%"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>🌾 Wheat</span><span style="font-weight:600">18%</span></div><div class="progress-bar"><div class="progress-fill" style="width:18%"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 28. NOTIFICATIONS ===== -->
+<div class="screen" id="notifications">
+  <div class="topbar"><div class="back" onclick="history.back()">←</div><h2>Notifications</h2><div class="action" style="font-size:13px;font-weight:500;color:var(--green)">Clear</div></div>
+  <div class="scroll-content">
+    <div class="section-title">Today</div>
+    <div class="notif-item"><div class="notif-dot"></div><div><div style="font-size:14px;font-weight:500;margin-bottom:2px">New order received! #ORD-2341</div><div style="font-size:12px;color:var(--muted)">Priya Kaur ordered Tomatoes 2kg · ₹220</div><div style="font-size:11px;color:var(--hint);margin-top:4px">2 hrs ago</div></div></div>
+    <div class="notif-item"><div class="notif-dot"></div><div><div style="font-size:14px;font-weight:500;margin-bottom:2px">💰 Payment received</div><div style="font-size:12px;color:var(--muted)">₹600 credited for #ORD-2330 Wheat order</div><div style="font-size:11px;color:var(--hint);margin-top:4px">5 hrs ago</div></div></div>
+    <div class="section-title" style="margin-top:16px">Yesterday</div>
+    <div class="notif-item"><div class="notif-dot read"></div><div><div style="font-size:14px;font-weight:500;margin-bottom:2px">Order delivered ✓</div><div style="font-size:12px;color:var(--muted)">#ORD-2318 delivered to Amit Verma</div><div style="font-size:11px;color:var(--hint);margin-top:4px">Yesterday, 4:30 PM</div></div></div>
+    <div class="notif-item"><div class="notif-dot read"></div><div><div style="font-size:14px;font-weight:500;margin-bottom:2px">Product approved ✓</div><div style="font-size:12px;color:var(--muted)">Your Buffalo Milk listing is now live</div><div style="font-size:11px;color:var(--hint);margin-top:4px">Yesterday, 10:15 AM</div></div></div>
+  </div>
+</div>
+
+<!-- ===== 29. PROFILE PAGE ===== -->
+<div class="screen" id="profilePage">
+  <div style="background:linear-gradient(135deg,var(--green-dark),var(--green));padding:32px 20px 24px">
+    <div style="text-align:center">
+      <div style="width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.2);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:32px;border:3px solid rgba(255,255,255,0.4)">🧑‍🌾</div>
+      <div style="font-size:20px;font-weight:700;color:#fff">Ramesh Patel</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.7)">📱 +91 98765 43210</div>
+      <span class="badge" style="margin-top:8px;background:rgba(255,255,255,0.2);color:#fff">Farmer · Verified ✓</span>
+    </div>
+  </div>
+  <div class="scroll-content">
+    <div class="section-title">Account</div>
+    <div class="card">
+      <div class="list-item"><span>👤</span><div class="info"><div class="name">Edit Profile</div><div class="sub">Name, address, photo</div></div><span style="color:var(--muted)">→</span></div>
+      <div class="list-item"><span>📍</span><div class="info"><div class="name">Manage Addresses</div><div class="sub">Home, Farm locations</div></div><span style="color:var(--muted)">→</span></div>
+      <div class="list-item"><span>🔔</span><div class="info"><div class="name">Notifications</div><div class="sub">Order alerts, payments</div></div><span style="color:var(--muted)">→</span></div>
+    </div>
+    <div class="section-title">Help & Support</div>
+    <div class="card">
+      <div class="list-item"><span>📞</span><div class="info"><div class="name">Contact Support</div><div class="sub">Call or chat with us</div></div><span style="color:var(--muted)">→</span></div>
+      <div class="list-item"><span>❓</span><div class="info"><div class="name">FAQ</div><div class="sub">Common questions</div></div><span style="color:var(--muted)">→</span></div>
+      <div class="list-item" onclick="go('settings')"><span>⚙️</span><div class="info"><div class="name">Settings</div><div class="sub">Language, app preferences</div></div><span style="color:var(--muted)">→</span></div>
+    </div>
+    <div class="card" style="margin-top:4px">
+      <div class="list-item" style="color:var(--red)"><span>🚪</span><div class="info"><div class="name" style="color:var(--red)">Logout</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 30. SETTINGS PAGE ===== -->
+<div class="screen" id="settings">
+  <div class="topbar"><div class="back" onclick="go('profilePage')">←</div><h2>Settings</h2></div>
+  <div class="scroll-content">
+    <div class="section-title">Language / भाषा</div>
+    <div class="card">
+      <div style="display:flex;gap:12px">
+        <div style="flex:1;border:2px solid var(--green);border-radius:var(--rs);padding:12px;text-align:center;cursor:pointer;background:var(--green-light)"><div style="font-weight:700;color:var(--green-dark)">English</div><div style="font-size:12px;color:var(--muted)">Selected</div></div>
+        <div style="flex:1;border:1.5px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center;cursor:pointer"><div style="font-weight:700">हिंदी</div><div style="font-size:12px;color:var(--muted)">Hindi</div></div>
+      </div>
+    </div>
+    <div class="section-title" style="margin-top:8px">Notifications</div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div><div style="font-weight:500;font-size:14px">Order Alerts</div><div style="font-size:12px;color:var(--muted)">New orders, status updates</div></div><div class="toggle-switch on"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div><div style="font-weight:500;font-size:14px">Payment Updates</div><div style="font-size:12px;color:var(--muted)">Receipts and confirmations</div></div><div class="toggle-switch on"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:500;font-size:14px">Promotional Offers</div><div style="font-size:12px;color:var(--muted)">Deals and discounts</div></div><div class="toggle-switch"></div></div>
+    </div>
+    <div class="section-title" style="margin-top:8px">App</div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div><div style="font-weight:500;font-size:14px">Dark Mode</div><div style="font-size:12px;color:var(--muted)">Use dark theme</div></div><div class="toggle-switch"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:500;font-size:14px">Location Access</div><div style="font-size:12px;color:var(--muted)">For nearby farmers</div></div><div class="toggle-switch on"></div></div>
+    </div>
+    <div class="card" style="margin-top:4px">
+      <div style="font-size:12px;color:var(--muted);text-align:center">KrishiMart v2.1.0 · Made with ❤️ for Indian Farmers</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODULE SWITCHER (floating) ===== -->
+<div id="moduleSwitcher" style="display:none;position:fixed;bottom:80px;right:16px;z-index:100">
+  <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;min-width:180px">
+    <div style="padding:10px 14px;font-size:12px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);background:var(--bg)">SWITCH MODULE</div>
+    <div class="list-item" style="padding:10px 14px;margin:0;border:none;cursor:pointer" onclick="go('splash');toggleSwitcher()"><span style="font-size:16px">🌱</span><span style="font-size:13px;font-weight:500">Splash / Auth</span></div>
+    <div class="list-item" style="padding:10px 14px;margin:0;border:none;cursor:pointer" onclick="go('farmerDash');toggleSwitcher()"><span style="font-size:16px">🧑‍🌾</span><span style="font-size:13px;font-weight:500">Farmer Module</span></div>
+    <div class="list-item" style="padding:10px 14px;margin:0;border:none;cursor:pointer" onclick="go('consumerHome');toggleSwitcher()"><span style="font-size:16px">🛒</span><span style="font-size:13px;font-weight:500">Consumer Module</span></div>
+    <div class="list-item" style="padding:10px 14px;margin:0;border:none;cursor:pointer" onclick="go('deliveryDash');toggleSwitcher()"><span style="font-size:16px">🚚</span><span style="font-size:13px;font-weight:500">Delivery Module</span></div>
+    <div class="list-item" style="padding:10px 14px;margin:0;border:none;cursor:pointer;border-top:1px solid var(--border)" onclick="go('adminDash');toggleSwitcher()"><span style="font-size:16px">🧑‍💼</span><span style="font-size:13px;font-weight:500">Admin Panel</span></div>
+  </div>
+</div>
+<button onclick="toggleSwitcher()" style="position:fixed;bottom:20px;right:16px;z-index:101;width:52px;height:52px;border-radius:50%;background:var(--green);border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(26,107,60,0.35);display:flex;align-items:center;justify-content:center" title="Switch Module">⚡</button>
+
+<script>
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  // 🔥 Tumhara Firebase Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyD5TLIU8WUpuIqyXhiFXcR_M2Q_fE8-gtc",
+    authDomain: "newone-58dc9.firebaseapp.com",
+    projectId: "newone-58dc9",
+    storageBucket: "newone-58dc9.firebasestorage.app",
+    messagingSenderId: "953987442022",
+    appId: "1:953987442022:web:61bb9c8b45c38279ebd4a7",
+    measurementId: "G-7J6C557HQQ"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // Make global (important)
+  window.auth = auth;
+  window.RecaptchaVerifier = RecaptchaVerifier;
+  window.signInWithPhoneNumber = signInWithPhoneNumber;
+const screens={};
+document.querySelectorAll('.screen').forEach(s=>screens[s.id]=s);
+let currentRole='farmer';
+let switcherOpen=false;
+
+function go(id){
+  Object.values(screens).forEach(s=>{s.className='screen';s.style.display='none'});
+  if(screens[id]){screens[id].className='screen active';screens[id].style.display='flex'}
+  switcherOpen=false;
+  document.getElementById('moduleSwitcher').style.display='none';
+}
+function toggleSwitcher(){
+  switcherOpen=!switcherOpen;
+  document.getElementById('moduleSwitcher').style.display=switcherOpen?'block':'none';
+}
+function selectRole(r){
+  currentRole=r;
+  document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  setTimeout(()=>go('loginOtp'),300);
+}
+function sendOtp(){
+  const v=document.getElementById('mobileInput').value;
+  if(v.length>=10){
+    document.getElementById('otpSection').style.display='block';
+    let t=30;const ti=document.getElementById('timer');
+    const iv=setInterval(()=>{ti.textContent=--t;if(t<=0)clearInterval(iv)},1000);
+    const boxes=document.querySelectorAll('.otp-box');
+    boxes.forEach((b,i)=>{b.addEventListener('input',()=>{if(b.value&&boxes[i+1])boxes[i+1].focus()})});
+  }
+}
+function verifyOtp(){go('profileSetup');document.getElementById('roleDisplay').textContent=currentRole.charAt(0).toUpperCase()+currentRole.slice(1)+' 🧑‍🌾'}
+function completeProfile(){
+  if(currentRole==='farmer')go('farmerDash');
+  else if(currentRole==='consumer')go('consumerHome');
+  else if(currentRole==='delivery')go('deliveryDash');
+  else go('adminDash');
+}
+
+// Products data
+const products=[
+  {e:'🍅',n:'Tomatoes',p:'₹50/kg',f:'Ramesh Patel'},
+  {e:'🧅',n:'Onions',p:'₹30/kg',f:'Sunita Devi'},
+  {e:'🥔',n:'Potatoes',p:'₹25/kg',f:'Ramesh Patel'},
+  {e:'🌾',n:'Wheat',p:'₹28/kg',f:'Mahesh Kumar'},
+  {e:'🥛',n:'Buffalo Milk',p:'₹55/L',f:'Sunita Devi'},
+  {e:'🥬',n:'Spinach',p:'₹20/kg',f:'Anita Bai'},
+];
+
+function buildConsumerGrid(list){
+  const g=document.getElementById('consumerProductGrid');
+  if(!g)return;
+  g.innerHTML=list.map(p=>`<div class="product-card" onclick="go('productDetails')"><div class="img">${p.e}</div><div class="body"><div class="pname">${p.n}</div><div class="price">${p.p}</div><div class="farmer">🧑‍🌾 ${p.f}</div></div></div>`).join('');
+}
+function filterProducts(q){
+  buildConsumerGrid(products.filter(p=>p.n.toLowerCase().includes(q.toLowerCase())||p.f.toLowerCase().includes(q.toLowerCase())));
+}
+
+function buildProductList(){
+  const f=[
+    {e:'🍅',n:'Tomatoes',p:'₹50/kg',q:'80 kg'},
+    {e:'🧅',n:'Onions',p:'₹30/kg',q:'200 kg'},
+    {e:'🥔',n:'Potatoes',p:'₹25/kg',q:'150 kg'},
+    {e:'🌽',n:'Corn',p:'₹40/kg',q:'60 kg'},
+  ];
+  const pl=document.getElementById('productList');
+  if(!pl)return;
+  pl.innerHTML='<div class="card">'+f.map(p=>`<div class="list-item"><div style="font-size:28px">${p.e}</div><div class="info"><div class="name">${p.n}</div><div class="sub">${p.p} · ${p.q}</div></div><div style="display:flex;gap:6px"><button class="btn btn-outline btn-sm">✏</button><button class="btn btn-sm" style="border:1px solid var(--red);color:var(--red);background:transparent">🗑</button></div></div>`).join('')+'</div>';
+}
+
+// Build bar chart heights
+function buildBars(){
+  const vals=[60,75,55,90,100,80,65];
+  const cont=document.querySelector('.card [id="bar1"]');
+  if(cont){const bars=document.querySelectorAll('[id="bar1"]');bars.forEach((b,i)=>{b.style.height=vals[i]+'%'})}
+}
+
+// Auto-start splash
+setTimeout(()=>go('roleSelect'),2200);
+
+// Init on load
+window.onload=()=>{buildConsumerGrid(products);buildProductList()};
+</script>
+</body>
+</html>
 
